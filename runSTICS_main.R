@@ -15,14 +15,14 @@ if (!require("ggpubr")){
   install.packages("jpeg")
 }
 packages <- c("devtools","SticsOnR", "CroPlotR","SticsRFiles","Metrics",
-              "ggplot2","ggpubr","jpeg","CroptimizR","tidy")
+              "ggplot2","ggpubr","jpeg","CroptimizR","tidy","readxl")
 lapply(packages, library, character.only=TRUE)
 
 source("scr/runSTICS.R")
 
 
 stics_path <- "Z:\\Students\\Maria\\STICS\\MtnGem\\JavaSTICS-1.5.2-STICS-10.2.0"
-subdir <-"MtnGem Harrington"
+subdir <-"MtnGem-Harrington" #directory containg xml files
 #subdir <- "CroptimizR-MtnGem-Harrington"
 
 
