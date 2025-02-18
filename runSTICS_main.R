@@ -1,31 +1,13 @@
 #R code to run STICS and for calibration and evaluation of model
 
-if (!require("devtools")){
-  install.packages("devtools")
-}
-if (!require("SticsRPacks")){
-  devtools::install_github("SticsRPacks/SticsRPacks@*release")
-  devtools::install_github("SticsRPacks/CroPlotR@*release")
-}
-if (!require("Metrics")){
-  install.packages("Metrics")
-}
-if (!require("ggpubr")){
-  install.packages("ggpubr")
-  install.packages("jpeg")
-}
-packages <- c("devtools","SticsOnR", "CroPlotR","SticsRFiles","Metrics",
-              "ggplot2","ggpubr","jpeg","CroptimizR","tidyr","readxl")
-lapply(packages, library, character.only=TRUE)
-
-source("scr/runSTICS.R")
-source("src/CroptimizR.R")
-source("src/cal-eval_plots.R")
-
-
+#set path to folder containing javastics.exe and path to javastics working directory
 stics_path <- "Z:\\Students\\Maria\\STICS\\MtnGem\\JavaSTICS-1.5.2-STICS-10.2.0"
 subdir <-"MtnGem-Harrington" #directory containg xml files
 #subdir <- "CroptimizR-MtnGem-Harrington"
+
+source("src/runSTICS.R")
+source("src/CroptimizR.R")
+source("src/cal-eval_plots.R")
 
 
 #Select output variables
@@ -34,19 +16,20 @@ subdir <-"MtnGem-Harrington" #directory containg xml files
              # "QNplante","QNgrain","spfruit","swfac","swfac2moy","turfac","turfac2moy",
              # "N_mineralisation","leaching_from_plt","Ndenit","HR_vol_1_30",
              # "HR_vol_31_60","HR_vol_61_90","epsib")
-outvars <- c("masec(n)","mafrais","mafruit","QNplante", "QNgrain", "QN", "lai(n)")
+#outvars <- c("masec(n)","mafrais","mafruit","QNplante", "QNgrain", "lai(n)")
+outvars <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
+             "QNplante","QNgrain","QNrac","CNplante","CNgrain","QCrac","lai(n)")
 
 #apply new output variables
-gen_varmod(wspc,outvars,append=F)
+gen_varmod(workspace,outvars,append=F)
 
-
-#STICS calibration--------------------------------------------------------------
-
-version <- "default-"
+version <- "default_all-obs"
 
 #path where to store the results (graph and Rdata)
 results_dir <- file.path("Z:\\Students\\Maria\\STICS\\MtnGem\\Calibration-2024",version)
-dir.create(results_dir, showWarnings = FALSE)
+dir.create(results_dir, showWarnings = T)
+
+#STICS calibration--------------------------------------------------------------
 
 #if completing calibration/evaluation
 #specify list of usms used for calibration and list of usms used for evaluation
@@ -60,7 +43,7 @@ usm_eval <- usm_list[,2] #evaluation
 sit_name <- usm_cal
 
 #obs var names to consider in calibration. Single instance or vector
-var_name <- "lai_n"
+var_name <- outvars
 
 #select lower and upper bound of parameters to consider in calibration
 lowerbnds <- c(dlaimax = 0.0005, 
@@ -102,7 +85,14 @@ results <- calibrate_STICS()
 
 
 #Run STICS----------------------------------------------------------------------
-#within javastics workspace directory (i.e. not seperated by usms)
+#within javastics workspace directory (i.e. not separated by usms)
 
-results <- runSTICS()
+results <- runSTICS(version = version)
+
+sims <- SticsRFiles::get_sim(javastics = stics_path,
+                             workspace = workspace, 
+                             usm = usms)
+obs <- get_obs(workspace., usm = usms)
+
+plot_simvobs(sims, obs=obs) #plot sim vs. obs for each individual usm
 

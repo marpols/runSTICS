@@ -61,49 +61,53 @@ plotRMSE <- function(stats, output_dir){
   
   plot #show plot
   
-  ggsave(file.path(output_dir, paste(version,".png",sep="")), width=7, height=5)
+  ggsave(file.path(output_dir, paste(version,"rmse.png",sep="")), width=7, height=5)
 }
 
-plot_simvobs <- function(baseline = NULL, 
-                        new_sim,
-                        obs = obs_list){
+plot_simvobs <- function(baseline, 
+                        new_sims = NULL,
+                        obs = obs_list,
+                        ver = version,
+                        output_dir = results_dir){
   #Plot comparisons of simulations and observations using CroPlotR
   
-  if (!is.null(baseline)){
-    #before optimization
-    pbf <- plot(
-      baseline$sim_list,
-      obs = obs_list,
-      select_dyn = c("common")
-    )
+
+  #current run or before optimization
+  pbf <- plot(
+    baseline,
+    obs = obs_list,
+    select_dyn = c("common")
+  )
+  
+  if (!is.null(new_sims)){
+    #after optimization
+    paft <-
+      plot(
+        new_sims,
+        obs = obs_list,
+        select_dyn = c("common")
+      )
+    ver <- paste("Before Optimization")
   }
   
-  #after optimization
-  paft <-
-    plot(
-      new_sim$sim_list,
-      obs = obs_list,
-      select_dyn = c("common")
-    )
-  
   n <<- 1
-  while (length(new_sim$sim_list)){
-    if (!is.null(baseline)){
-      p1 <-
-        pbf[[n]] +
-        labs(title = paste(pbf[[n]]$data$Sit_Name[1],"Before Optimization",sep=" ")) +
+  while (n <= length(baseline)){
+    p1 <-
+      pbf[[n]] +
+      labs(title = paste(names(obs_list)[n],ver,sep=" ")) +
+      theme(plot.title = element_text(size = 9, hjust = 0.5))
+    
+    if(!is.null(new_sims)){
+      p2 <- paft[[n]] +
+        labs(title = paste(names(obs_list)[n], "After Optimization", sep=" ")) +
+        ylim(
+          NA,
+          ggplot_build(p1)$layout$panel_params[[1]]$y.range[2]
+        ) +
         theme(plot.title = element_text(size = 9, hjust = 0.5))
     }
     
-    p2 <- paft[[n]] +
-      labs(title = paste(paft[[n]]$data$Sit_Name[1], "After Optimization", sep=" ")) +
-      ylim(
-        NA,
-        ggplot_build(p1)$layout$panel_params[[1]]$y.range[2]
-      ) +
-      theme(plot.title = element_text(size = 9, hjust = 0.5))
-    
-    if (!is.null(baseline)){
+    if (!is.null(new_sims)){
       p3 <- grid.arrange(
         grobs = list(p1, p2),
         nrow = 1,
@@ -111,18 +115,30 @@ plot_simvobs <- function(baseline = NULL,
         widths = c(5, 5)
       )
     }else {
-      p3 <- p2
+      p3 <- p1
     }
     
     # Save the graph
     ggsave(
-      file.path(
-        optim_options$out_dir,
-        paste0(paste(p[[n]]$data$Sit_Name[1],"simvobs_plot.png",sep=""))
+      file.path(output_dir,
+                names(obs_list)[n],
+                paste0(paste(names(obs_list)[n],"_simvobs.png",sep=""))
       ),
-      plot = p3
+      plot = p3,
+      width = 20,
+      height = 15,
+      units = "cm"
     )
+    message("Sim vs obs plot for ", 
+            names(obs_list)[n], 
+            " saved to:\n",
+            file.path(output_dir,
+                      names(obs_list)[n],
+                      paste0(paste(names(obs_list)[n],"_simvobs.png",sep=""))
+    ))
+    
     n <<- n + 1
   }
   
 }
+

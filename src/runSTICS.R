@@ -1,11 +1,30 @@
 #Run STICS in it's current state or with updated variables for manual calibration
 #(not using STICS parameter optimization algorithm)
+if (!require("devtools")){
+  install.packages("devtools")
+}
+if (!require("SticsRPacks")){
+  devtools::install_github("SticsRPacks/SticsRPacks@*release")
+  devtools::install_github("SticsRPacks/CroPlotR@*release")
+}
+if (!require("Metrics")){
+  install.packages("Metrics")
+}
+if (!require("ggpubr")){
+  install.packages("ggpubr")
+  install.packages("jpeg")
+}
+packages <- c("devtools","SticsOnR", "CroPlotR","SticsRFiles","Metrics",
+              "ggplot2","ggpubr","jpeg","CroptimizR","tidyr","readxl")
+lapply(packages, library, character.only=TRUE)
 
+workspace <<- file.path(stics_path, subdir) #main javastics workspace
 stics_inputs_path <<- NULL #path to STICS txtfiles
 sim_options <<- NULL #stics_wrapper_options
 javastics_workspace_path <<- NULL #path to STICS Xmlfiles (when using CroptimizR)
 sim_before_optim <<- NULL #baseline simulation run
 obs_list <<- NULL #list of observations used
+
 
 calib_init <- function(stics_path. = stics_path,
                        subdir. = subdir,
@@ -85,7 +104,31 @@ param_grid <- function(lwr = lowerbnds,
 }
 
 save_results <- function(workspace,
+                         outdir = results_dir){
+  #save results from running STICS directly in javastics workspace folder
+  
+  usms <- SticsRFiles::get_usms_list(file = file.path(workspace, "usms.xml"))
+  
+  files <- list.files(workspace, ".sti", full.names = T)
+  
+  for (u in usms){
+    dir.create(file.path(results_dir, u)) #create new directory for individiual usm
+    file.copy(from = files[grep(u, files)], 
+              to = file.path(results_dir, u)) #copy usm files to new directory
+  }
+  
+  file.copy(from = files[grep("modhistory.sti", files)],
+            to = results_dir)
+  file.copy(from = files[grep("mod_profil_Chum.sti", files)],
+            to = results_dir)
+  file.copy(from = files[grep("mod_rapport.sti", files)],
+            to = results_dir)
+}
+
+save_cal_results <- function(workspace,
                          directory = results_dir){
+  #save results when 
+  
   #save mod_b and mod_s files for each usm
   usm_dirs <- list.dirs(workspace, recursive = F)
   
@@ -100,7 +143,7 @@ save_results <- function(workspace,
     #get mod_b and mod_s files
     files <- grep("mod_[bs]", list.files(d, full.names = T))
   
-    #copy mod files from workspace into output directory
+    #copy mod files from workspace into output directory for specific usm
     file.copy(files, file.path(new_dir, usm_name))
   }
 }
@@ -166,17 +209,18 @@ calibrate_STICS <- function(situations,
 }
 
 runSTICS <- function(path = stics_path,
-                     workspace = file.path(stics_path, subdir),
-                     usms = NULL){
+                     workspace. = workspace,
+                     usms = NULL,
+                     version = NULL){
   #run javastics directly in subdir workspace
   
   if (is.null(usms)){
-    usms <- SticsRFiles::get_usms_list(file = file.path(workspace, "usms.xml"))
+    usms <- SticsRFiles::get_usms_list(file = file.path(workspace., "usms.xml"))
   }
-  results <- run_javastics(stics_path, workspace, usms)
+  results <- run_javastics(stics_path, workspace., usms)
   
-  save_results(workspace = workspace)
-  get_stats_summary(simulations = results$sim_list)
+  save_results(workspace = workspace.)
+  get_stats_summary(usms = usms, version = version)
   
   return(results)
 }
