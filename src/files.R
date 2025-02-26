@@ -3,17 +3,27 @@ init_files <- function(workspace,
   files <- list.files(path = file.path(stics_path, subdir), pattern = ".xml$", full.names = TRUE)
   usm_file <<- file.path(workspace, sprintf("usms.%s", file_type))
   sols <<- file.path(workspace, sprintf("sols.%s", file_type))
-  plt <<- file.path(workspace,"plant","potato_russetBurbank_plt.xml")
+  plt <<- file.path(stics_path,"plant","potato_mountainGem_plt.xml")
 }
 
-new_file_xml <- function(path, 
-                         new_path = NULL,
-                         old_file, 
-                         new_file){
-  #create new .xml file by copying old file
+new_file <- function(path,
+                     old_file, 
+                     new_file,
+                     file = c("usms","tec","sols","ini","plt","sta"),
+                     type = c("xml","txt"),
+                     new_path = NULL){
+  #create new file by copying old file
   if (is.null(new_path)){new_path <- path}
-  file.copy(from = file.path(path,old_file), to = file.path(new_path, new_file),
+  if (file %in% c("tec", "ini","plt","sta")){
+    ext <- sprintf("_%s.%s",file,type)
+  } else {
+    ext <- sprintf("%s.%s",file,type)
+  }
+  file.copy(from = file.path(path,paste0(old_file,ext)), 
+            to = file.path(new_path, paste0(new_file,ext)),
             overwrite = TRUE)
+  message("new file created by copy\n", 
+          file.path(new_path, paste0(new_file,ext)))
 }
 
 param_table <- function(params){

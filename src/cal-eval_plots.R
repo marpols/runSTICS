@@ -2,49 +2,52 @@
 get_stats_summary <- function(workspace. = workspace, 
                               version = NULL, 
                               output_dir = results_dir,
-                              javastics_path = stics_path,
                               usms = NULL,
+                              obs_list = NULL,
                               simulations = NULL,
                               variables = NULL, 
                               plot=T){
   #calculate statics/metrics for crop model
   
-  if (is.null(usms)){
+  if (is.null(usms) & (is.null(obs_list)|is.null(simulations))){
     usms <- SticsRFiles::get_usms_list(file = file.path(workspace., "usms.xml"))
   }
-  obs_list <- get_obs(workspace., usm = usms)
+  if (is.null(obs_list)){
+    message("obtaining obersvation files")
+    obs_list <- get_obs(workspace., usm = usms)
+  }
   if (!is.null(variables)){
     #filter obs_list to include only listed variables
     obs_list <- filter_obs(obs_list, var = variables, include = TRUE)
   }
   if(is.null(simulations)){
-    simulations <- SticsRFiles::get_sim(javastics = javastics_path,
-                                      workspace = workspace., 
-                                      usm = usms)
+    message("obtaining simulation files")
+    simulations <- get_sim(workspace = workspace.,usm = usms)
   }
   
   stats <- summary(simulations, obs = obs_list, all_situations = T)
   stats$RMSEs_sd <- stats$RMSEs/stats$sd_obs
   stats$RMSEu_sd <- stats$RMSEu/stats$sd_obs
   
-  write.csv(stats[,c("variable", "n_obs", "sd_obs", "sd_sim","RMSEs","RMSEu","RMSEs_sd","RMSEu_sd")], 
+  write.csv(stats[,c("variable", "n_obs", "sd_obs", "sd_sim",
+                     "RMSEs","RMSEu","RMSEs_sd","RMSEu_sd")], 
             file.path(output_dir, paste(version,"_metrics.csv",sep="")))
   
   if (plot){
-    plotRMSE(stats,output_dir)
+    plotRMSE(stats,output_dir, version)
   }
   
   return(stats)
   
 }
 
-plotRMSE <- function(stats, output_dir){
+plotRMSE <- function(stats, output_dir, version){
   #create plot of RMSEs/std dev of the measurements and RMSEu/std dev of the measurements
   img <- readJPEG("RMSEcheck.jpg")
   
-  if (!is.null(version)){
+  if (is.null(version)){
     #if no version title, make title name of subdir
-    version = subdir
+    version <- subdir
   }
   
   plot <- ggplot(stats, aes(x=RMSEu_sd, y = RMSEs_sd, 
@@ -61,12 +64,14 @@ plotRMSE <- function(stats, output_dir){
   
   plot #show plot
   
-  ggsave(file.path(output_dir, paste(version,"rmse.png",sep="")), width=7, height=5)
+  ggsave(file.path(output_dir, paste(version,"_rmse.png",sep="")), width=7, height=5)
+  
+  message("✅succesufully created RMSE plot")
 }
 
 plot_simvobs <- function(baseline, 
                         new_sims = NULL,
-                        obs = obs_list,
+                        obs. = obs,
                         ver = version,
                         output_dir = results_dir){
   #Plot comparisons of simulations and observations using CroPlotR
@@ -75,7 +80,7 @@ plot_simvobs <- function(baseline,
   #current run or before optimization
   pbf <- plot(
     baseline,
-    obs = obs_list,
+    obs = obs.,
     select_dyn = c("common")
   )
   
@@ -84,7 +89,7 @@ plot_simvobs <- function(baseline,
     paft <-
       plot(
         new_sims,
-        obs = obs_list,
+        obs = obs.,
         select_dyn = c("common")
       )
     ver <- paste("Before Optimization")
@@ -94,12 +99,12 @@ plot_simvobs <- function(baseline,
   while (n <= length(baseline)){
     p1 <-
       pbf[[n]] +
-      labs(title = paste(names(obs_list)[n],ver,sep=" ")) +
+      labs(title = paste(names(obs.)[n],ver,sep=" ")) +
       theme(plot.title = element_text(size = 9, hjust = 0.5))
     
     if(!is.null(new_sims)){
       p2 <- paft[[n]] +
-        labs(title = paste(names(obs_list)[n], "After Optimization", sep=" ")) +
+        labs(title = paste(names(obs.)[n], "After Optimization", sep=" ")) +
         ylim(
           NA,
           ggplot_build(p1)$layout$panel_params[[1]]$y.range[2]
@@ -119,26 +124,94 @@ plot_simvobs <- function(baseline,
     }
     
     # Save the graph
+    fname <- file.path(output_dir,
+                       names(obs.)[n],
+                       paste0(paste(names(obs.)[n],"_simvobs.png",sep=""))
+    )
     ggsave(
-      file.path(output_dir,
-                names(obs_list)[n],
-                paste0(paste(names(obs_list)[n],"_simvobs.png",sep=""))
-      ),
+      fname,
       plot = p3,
       width = 20,
       height = 15,
       units = "cm"
     )
     message("Sim vs obs plot for ", 
-            names(obs_list)[n], 
+            names(obs.)[n], 
             " saved to:\n",
-            file.path(output_dir,
-                      names(obs_list)[n],
-                      paste0(paste(names(obs_list)[n],"_simvobs.png",sep=""))
-    ))
-    
+            fname)
     n <<- n + 1
   }
-  
+  message("✅succesfully created all sims vs obs plots")
 }
 
+plot_sim <- function(sims,
+                     vars = NULL,
+                     ver = version,
+                     output_dir = results_dir
+                     ){
+  #plot simulation output without observations
+  
+  if (is.null(vars)){
+    pbf <- plot(sims)
+  } else {
+    pbf <- plot(sims, var = vars)
+  }
+  
+  n <<- 1
+  while (n <= length(sims)){
+    sit <- names(sims)[n]
+    
+    p1 <-
+      pbf[[n]] +
+      labs(title = paste(sit,ver,sep=" ")) +
+      theme(plot.title = element_text(size = 9, hjust = 0.5))
+    
+    # Save the graph
+    fname <- file.path(output_dir,
+                      sit,
+                      paste0(paste(sit,"_sims.png",sep="")))
+    ggsave(
+      fname,
+      plot = p1,
+      width = 20,
+      height = 15,
+      units = "cm"
+    )
+    message("Simulation plot for ", 
+            sit, 
+            " saved to:\n",
+            fname
+            )
+    n <<- n + 1
+  }
+}
+
+get_devstgs <- function(sims,
+                        output_dir = results_dir){
+  #return simulated dates of development stages
+  #model outputs should include: 
+  #igers, ilevs, iamfs, iflos, idrps,idepdess, imats
+
+  table <- data.frame()
+  n <- 1
+  while (n <= length(sims)){
+    sit <- names(sims[n])
+    df <- data.frame(germination = max(sims[[n]]$igers),
+                     emergence = max(sims[[n]]$ilevs),
+                     juvenile.end = max(sims[[n]]$iamfs),
+                     flowering = max(sims[[n]]$iflos),
+                     organ.filling = max(sims[[n]]$idrps),
+                     organ.water.dynamics = max(sims[[n]]$idebdess),
+                     maturity = max(sims[[n]]$imats))
+    row.names(df) <- sit
+    table <- rbind(table, df)
+    n <- n + 1
+  }
+  write.table(table, file.path(output_dir,"sim_growthStages.csv"))
+  return(table)
+}
+
+append_sims <- function(slist){
+  attr(slist, "class") <- "cropr_simulation"
+  return(slist)
+}
