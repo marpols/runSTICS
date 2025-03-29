@@ -3,9 +3,9 @@
 library(readxl)
 
 #path to observations excel file
-obs_xlsx <- "C:\\Users\\PolsinelliM\\OneDrive - AGR-AGR\\Documents\\MntGem STICS\\2024 Data\\obs\\usms_obs.xlsx"
+obs_xlsx <- "\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\Mountain Gem Data\\2024 Data\\obs\\usms_obs-trapN2O.xlsx"
 #output directory for .obs files
-output <- "C:\\Users\\PolsinelliM\\OneDrive - AGR-AGR\\Documents\\MntGem STICS\\2024 Data\\obs"
+output <- "\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\Mountain Gem Data\\2024 Data\\obs\\trapN2Oobs"
 
 gen_obs <- function(xl_file, outdir){
   #generates .obs files for STICS where each sheet of an excel file is an individual usm/set of observations
@@ -18,3 +18,5 @@ gen_obs <- function(xl_file, outdir){
     }
   }
 }
+
+gen_obs(obs_xlsx, output)

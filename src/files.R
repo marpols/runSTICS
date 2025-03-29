@@ -1,19 +1,35 @@
 init_files <- function(workspace,
-               file_type = c("xml","txt")){
+               file_type = c("xml","txt"),
+               plant_file = "potato_mountainGem_plt.xml",
+               station = "Harrington"){
+  #initialize file paths
   files <- list.files(path = file.path(stics_path, subdir), pattern = ".xml$", full.names = TRUE)
-  usm_file <<- file.path(workspace, sprintf("usms.%s", file_type))
-  sols <<- file.path(workspace, sprintf("sols.%s", file_type))
-  plt <<- file.path(workspace,"plant","potato_russetBurbank_plt.xml")
+  usm_file <<- file.path(workspace, "usms.xml")
+  sta <<- file.path(workspace, sprintf("%s_sta.xml", station))
+  sols <<- file.path(workspace, "sols.xml")
+  plt <<- file.path(
+    if(file_type =="xml"){stics_path}else{workspace},
+    "plant",plant_file)
 }
 
-new_file_xml <- function(path, 
-                         new_path = NULL,
-                         old_file, 
-                         new_file){
-  #create new .xml file by copying old file
+new_file <- function(path,
+                     old_file, 
+                     new_file,
+                     file = c("usms","tec","sols","ini","plt","sta"),
+                     type = c("xml","txt"),
+                     new_path = NULL){
+  #create new file by copying old file
   if (is.null(new_path)){new_path <- path}
-  file.copy(from = file.path(path,old_file), to = file.path(new_path, new_file),
+  if (file %in% c("tec", "ini","plt","sta")){
+    ext <- sprintf("_%s.%s",file,type)
+  } else {
+    ext <- sprintf("%s.%s",file,type)
+  }
+  file.copy(from = file.path(path,paste0(old_file,ext)), 
+            to = file.path(new_path, paste0(new_file,ext)),
             overwrite = TRUE)
+  message("new file created by copy\n", 
+          file.path(new_path, paste0(new_file,ext)))
 }
 
 param_table <- function(params){
@@ -43,13 +59,15 @@ compare_files <- function(old_params, new_params){
   return(c(Parameter_Table = df, Changed_Values = df[df$Same == F,]))
 }
 
-
-
-
-usm_details <- get_param_xml(usm_file)
-plt_params <- get_param_xml(plt)
-plt_porg <- get_param_xml(plt_org)
-
+update_txt <- function(){
+  #regenerate text files to update after changes have been made to an xml file
+  gen_usms_xml2txt(
+    javastics = stics_path,
+    workspace = xml_path,
+    out_dir = stics_inputs_path,
+    verbose = TRUE
+  )
+}
 
 set_param <- function(file,
                       file_type = c("xml","txt"),
@@ -59,12 +77,26 @@ set_param <- function(file,
                       select_value = NULL,
                       overwrite = T){
   #update values
-  get_param_xml(file, param = params, 
+  #params <- list of parameter names
+  #values <- list of names for respective params
+  
+  before <- get_param_xml(file, param = params, 
                 select = select, select_value = select_value)
+  message("Original Parameter Values:\n",
+          paste0(capture.output(before), collapse = "\n"))
   set_param_xml(file, param = params, 
                 values = values,
                 select = select, select_value = select_value,
                 overwrite = overwrite)
-  get_param_xml(file, param = params,
+  after <- get_param_xml(file, param = params,
                 select = select, select_value = select_value)
+  message("New Values:\n",
+          paste0(capture.output(after), collapse = "\n"))
+  
+  
+  if(file_type == "txt"){
+    #update .txt files
+    message("updating parameters in txt files")
+    update_txt()
+  }
 }

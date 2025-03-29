@@ -5,19 +5,39 @@
 
 runCroptimizR <- function(model_options = sim_options,
                           sit_name. = sit_name,
+                          obs_list = obs,
                           var_name. = var_name,
                           lowerbnds. = lowerbnds,
                           upperbnds. = upperbnds,
                           reps. = reps,
                           max. = max,
-                          tol. = tol,
-                          out_dir = results_dir){
+                          tol. = tolerance,
+                          ver = version,
+                          out_dir = results_dir,
+                          usms = usm_cal){
   
 
   # Run the model on all situations found in stics_inputs_path before optimization
-  sim_before_optim <<- stics_wrapper(model_options = model_options)
-  
-  set_obs(javastics_workspace_path, usms = sit_name.,variables = var_name.)
+  message("Calibrating model for:\n", 
+          paste0(capture.output(var_name.), collapse = "\n"))
+  values <- get_param_xml(plt, param = names(lowerbnds.)
+                         )
+  message("\nRunning model before optimization - ", Sys.time(),
+          "\noriginal value(s):\n",
+          paste0(capture.output(values), collapse = "\n")
+          )
+  sim_before_optim <<- stics_wrapper(model_options = model_options,
+                                     situation = usms)
+
+  dir.create(file.path(out_dir,"before"))
+  save_results2(stics_inputs_path, 
+                outdir = file.path(out_dir,"before"),
+                usms = sit_name.)
+  get_stats_summary(version = ver,
+                    output_dir = file.path(out_dir,"before"),
+                    obs_list = obs_list,
+                    simulations = sim_before_optim$sim_list)
+
   
   # upper and lower bounds of parameters to consider
   param_info <- list(
@@ -38,11 +58,12 @@ runCroptimizR <- function(model_options = sim_options,
                                       # iterations)
   optim_options$out_dir <- out_dir # path where to store the results
   # (graph and Rdata)
-  optim_options$ranseed <- random_seed # set random seed so that each execution give the
+  optim_options$ranseed <- random_seed # set random seed so that each execution gives the
                                 # same results
                                 # If you want randomization, don't set it.
   
   #Run the optimization
+  message("Running Optimiztion at ", Sys.time())
   res <- estim_param(
     obs_list = obs_list,
     model_function = stics_wrapper,
@@ -51,18 +72,31 @@ runCroptimizR <- function(model_options = sim_options,
     param_info = param_info
   )
   
-  final_vals <- res$final_values
+  final_vals <<- res$final_values
   
   #Run model after optimization
-  sim_after_optim <- stics_wrapper(
+  message("Running model with optimized parameter(s)")
+  sim_after_optim <<- stics_wrapper(
     param_values = res$final_values,
-    model_options = model_options
+    model_options = model_options,
+    situation = usms
   )
-  
-  save_results()
+  write.csv(final_vals,
+            file.path(out_dir,sprintf("%s_final-values.csv",version)))
+  save_results3(sim_after_optim$sim_list)
   get_stats_summary(simulations = sim_after_optim$sim_list,
-                    usms = sit_name.)
-  plot_simvobs(sim_before_optim, sim_after_optim)
+                    usms = sit_name.,
+                    obs_list = obs_list,
+                    version = version,
+                    fname = "-after")
+  plot_simvobs(baseline = sim_before_optim$sim_list, 
+               new_sims = sim_after_optim$sim_list,
+               obs = obs_list)
+  plot_simvobs(sim_after_optim$sim_list,
+               obs = obs_list,
+               subname = "after")
+  
+  message("Completed at", Sys.time())
   
   return(sim_after_optim)
 }
