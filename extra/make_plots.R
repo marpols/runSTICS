@@ -2,6 +2,7 @@ library(SticsRPacks)
 library(grid)
 library(gridExtra)
 library(dplyr)
+library(stringi)
 
 obs <- get_obs(workspace, usm = usms)
 sims <- get_sim(workspace, usm = usms)
@@ -58,15 +59,15 @@ simobs_plot <- function(df, simdf, title, y_var, y_title,
                         y_lim, colours1, colours2, x_var = "Date"){
   
   v <- org_vars[grep(paste(y_var,"$",sep=""), vars)]
-  subplots <- unique(df$Plot)
+  subplots <- unique(df$plot_id)
   cal <- subplots[which(stri_sub(subplots, -1) == "A")]
   eval <- subplots[which(stri_sub(subplots, -1) == "B")]
   
   df <- df[!is.na(df[,names(df) == v]),]
   df1 <- df[df$Fertiliser == "N170",]
   df2 <- df[df$Fertiliser == "N120",]
-  df1p <- unique(df1$Plot)
-  df2p <- unique(df2$Plot)
+  df1p <- unique(df1$plot_id)
+  df2p <- unique(df2$plot_id)
   
   start <- min(df$Date)
   end <- max(df$Date)
@@ -77,28 +78,28 @@ simobs_plot <- function(df, simdf, title, y_var, y_title,
   simdf2 <- simdf[simdf$Fertiliser == "N120",]
   
   plot1 <- ggplot(df,aes(x = .data[[x_var]])) +
-    geom_line(data = df1[df1$Plot == df1p[1],],
+    geom_line(data = df1[df1$plot_id == df1p[1],],
               aes(y = .data[[v]]),
               color = colours1[1], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df1[df1$Plot == df1p[1],],
+    geom_point(data = df1[df1$plot_id == df1p[1],],
                aes(y = .data[[v]], color = "Observed1"),
                shape = 17, size=3) +
-    geom_line(data = df1[df1$Plot == df1p[2],],
+    geom_line(data = df1[df1$plot_id == df1p[2],],
               aes(y = .data[[v]]),
               color = colours1[2], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df1[df1$Plot == df1p[2],],
+    geom_point(data = df1[df1$plot_id == df1p[2],],
                aes(y = .data[[v]], color = "Observed2"),
                shape = 15, size=3) +
-    geom_line(data = df1[df1$Plot == df1p[3],],
+    geom_line(data = df1[df1$plot_id == df1p[3],],
               aes(y = .data[[v]]),
               color = colours1[3], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df1[df1$Plot == df1p[3],],
+    geom_point(data = df1[df1$plot_id == df1p[3],],
                aes(y = .data[[v]], color = "Observed3"),
                shape = 16, size=3) +
-    geom_line(data = simdf1[simdf1$Plot == df1p[1],],
+    geom_line(data = simdf1[simdf1$plot_id == df1p[1],],
               aes(y = .data[[v]], color = "Simulated"),
               linewidth = 0.8,
               na.rm = T) +
@@ -117,28 +118,28 @@ simobs_plot <- function(df, simdf, title, y_var, y_title,
     theme(legend.position = "bottom")
   
   plot2 <- ggplot(df,aes(x = .data[[x_var]])) +
-    geom_line(data = df2[df2$Plot == df2p[1],],
+    geom_line(data = df2[df2$plot_id == df2p[1],],
               aes(y = .data[[v]]),
               color = colours2[1], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df2[df2$Plot == df2p[1],],
+    geom_point(data = df2[df2$plot_id == df2p[1],],
                aes(y = .data[[v]], color = "Observed1"),
                shape = 17, size=3) +
-    geom_line(data = df2[df2$Plot == df2p[2],],
+    geom_line(data = df2[df2$plot_id == df2p[2],],
               aes(y = .data[[v]]),
               color = colours2[2], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df2[df2$Plot == df2p[2],],
+    geom_point(data = df2[df2$plot_id == df2p[2],],
                aes(y = .data[[v]], color = "Observed2"),
                shape = 15, size=3) +
-    geom_line(data = df2[df2$Plot == df2p[3],],
+    geom_line(data = df2[df2$plot_id == df2p[3],],
               aes(y = .data[[v]]),
               color = colours2[3], linewidth = 0.6,linetype = 2,
               na.rm = T) +
-    geom_point(data = df2[df2$Plot == df2p[3],],
+    geom_point(data = df2[df2$plot_id == df2p[3],],
                aes(y = .data[[v]], color = "Observed3"),
                shape = 16, size=3) +
-    geom_line(data = simdf2[simdf2$Plot == df2p[1],],
+    geom_line(data = simdf2[simdf2$plot_id == df2p[1],],
               aes(y = .data[[v]], color = "Simulated"),
               linewidth = 0.8,
               na.rm = T) +
@@ -156,7 +157,7 @@ simobs_plot <- function(df, simdf, title, y_var, y_title,
     theme_minimal() +
     theme(legend.position = "bottom")
   
-  p <- grid.arrange(plot1, plot2, ncol = 2)
+  p <- grid.arrange(plot1, plot2, nrow = 2)
   
   if (title == "Barley/Clover/Potato") fn <- "trt1"
   if (title == "Corn/Grass/Potato") fn <- "trt2"
@@ -167,8 +168,8 @@ simobs_plot <- function(df, simdf, title, y_var, y_title,
                           fn,
                           gsub("\\.", " ", y_var))),
     plot = p,
-    width = 30,
-    height = 10,
+    width = 10,
+    height = 30,
     units = "cm")
   
   p
@@ -445,8 +446,20 @@ colours1 <- c("#ff8566","#ff3300","#b32400")
 colours2 <- c("#80aaff","#004de6","#003399")
 
 trt1_all <- allobs[allobs$Rotation == "Barley/Clover/Potato",]
+trt1_all$plot_id <- paste("Plot", substr(trt1_all$Plot, 
+                           nchar(trt1_all$Plot) - 1,
+                           nchar(trt1_all$Plot)),
+                          sep = " ")
 trt2_all <- allobs[allobs$Rotation == "Corn/Grass/Potato",]
+trt2_all$plot_id <- paste("Plot", substr(trt2_all$Plot, 
+                                         nchar(trt2_all$Plot) - 1,
+                                         nchar(trt2_all$Plot)),
+                          sep = " ")
 trt3_all <- allobs[allobs$Rotation == "Soybean /Mustard / Potato",]
+trt3_all$plot_id <- paste("Plot", substr(trt3_all$Plot, 
+                                         nchar(trt3_all$Plot) - 1,
+                                         nchar(trt3_all$Plot)),
+                          sep = " ")
 alltrt_list <- list(trt1 = trt1_all, trt2 = trt2_all, trt3 = trt3_all)
 
 sum_obs <- make_summary(allobs)
@@ -475,7 +488,7 @@ names <- c("Total Biomass (t/ha)",
            "Total N (kg/ha)",
            "Tuber N (kg/ha)",
            "Root N (kg/ha)",
-           "Cummulative N2O (kg/d)")
+           "Cumulative N2O (kg/d)")
 
 
 titles <- c("Barley/Clover/Potato", 
@@ -553,6 +566,10 @@ for (i in 1:length(vars)){
     units = "cm")
 }
 
+allsims$plot_id <- paste("Plot", substr(allsims$Plot, 
+                                        nchar(allsims$Plot) - 1,
+                                        nchar(allsims$Plot)),
+                         sep = " ")
 
 #create sim V obs plots
 simVobs_plots <- list()
@@ -586,12 +603,12 @@ for (i in 1:length(vars)){
   plot <- grid.arrange(grobs = c(simVobs_plots[[1]][i],
                                  simVobs_plots[[2]][i],
                                  simVobs_plots[[3]][i]), 
-                       nrow = 3)
+                       ncol = 3)
   ggsave(
-    file.path(dir,sprintf("%s_compare-obsVsim.png", vars[i])),
+    file.path(dir,sprintf("%s_compare-obsVsim2.png", vars[i])),
     plot = plot,
     width = 30,
-    height = 30,
+    height = 15,
     units = "cm")
 }
 
