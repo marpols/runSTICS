@@ -100,3 +100,7 @@ set_param <- function(file,
     update_txt()
   }
 }
+
+update_usm <- function(new_usms = NULL, stations, years, sols){
+  
+}

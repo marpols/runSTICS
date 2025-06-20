@@ -1,8 +1,10 @@
 #R code to run STICS and for calibration and evaluation of model
 
 #set path to folder containing javastics.exe and path to javastics working directory
-stics_path <- "\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\JavaSTICS-1.5.2-STICS-10.2.0"
-subdir <-"MtnGem-Harrington" #main workspace
+stics_path <- "C:\\Users\\marpo\\Documents\\Research\\STICS\\JavaSTICS-1.5.3-STICS-10.3.0"
+#stics_path <- "\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\JavaSTICS-1.5.2-STICS-10.2.0"
+subdir <- "irrigation_assessment"
+# subdir <-"MtnGem-Harrington" #main workspace
 # subdir <- "CroptimizR-MtnGem-Harrington"
 # subdir <- "Morissette-et-al_2016"
 # subdir <- "MattRamsayData"
@@ -28,22 +30,25 @@ init_files(xml_path, "xml")
 #outvars <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
 #              "QNplante","QNgrain","QNrac","CNplante","CNgrain","QCrac","lai(n)",
 #              "zrac","resmes","cet", "et", "em_N2O", "CO2sol","GHG", "Qem_N2O","HR(1)")
-outvars <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
-             "QNplante","QNgrain","CNplante","CNgrain","lai(n)",
-             "zrac","resmes","cet", "et", "em_N2O","GHG", "Qem_N2O","HR(1)",
-             "inn", "QCrac", "QNrac", 
-             "ulai_n", "turfac", "swfac", "senfac","innlai","splai", 
-             "idebdess","fpft", "allocfruit", "sourcepuits")
+#outvars <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
+#              "QNplante","QNgrain","CNplante","CNgrain","lai(n)",
+#              "zrac","resmes","cet", "et", "em_N2O","GHG", "Qem_N2O","HR(1)",
+#              "inn", "QCrac", "QNrac", 
+#              "ulai_n", "turfac", "swfac", "senfac","innlai","splai", 
+#              "idebdess","fpft", "allocfruit", "sourcepuits")
+outvars <- c("HR(1)", "pdsfruitfrais")
 
 #apply new output variables
 gen_varmod(workspace,outvars,append=F)
 
 
 #Set Version name and results directory-----------------------------------------
-version <- "MG_BeforeSMadjust"
+version <- "irrigation_test"
 
 #path to where the results will be stored (graph and Rdata)
-results_dir <- file.path("\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\MtnGem-Calibration-2024",
+#results_dir <- file.path("\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\MtnGem-Calibration-2024",
+                         # version)
+results_dir <- file.path("C:\\Users\\marpo\\Documents\\Research\\STICS\\JavaSTICS-1.5.3-STICS-10.3.0\\irrigation_assessment\\RESULTS",
                          version)
 dir.create(results_dir, showWarnings = T)
 message("output directory set as:\n", results_dir)
@@ -55,12 +60,20 @@ set_obs(xml_path)
 
 results <- runSTICS(version = version)
 
-sims_beforeSM <<- SticsRFiles::get_sim(javastics = stics_path,
+sims <<- SticsRFiles::get_sim(javastics = stics_path,
                               workspace = workspace)
+obns <- get_param_xml(usm_file, "fobs")[[1]][[1]]
+ob_names <- obns[!(obns == "NA")]
+
+usm_obs <- setNames(lapply(ob_names, function(o){
+  o <- sub(".obs","",o)
+  obs[[{{o}}]]
+  }), sub(".obs","",ob_names)
+)
 
 #get_stats_summary() -> metrics and RMSE plot
 
-plot_simvobs(sims_beforeSM, obs.= obs, ver = version) #plot sim vs. obs for each individual usm
+plot_simvobs(sims, obs.= usm_obs, ver = version) #plot sim vs. obs for each individual usm
 
 
 #update parameters--------------------------------------------------------------

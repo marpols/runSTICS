@@ -1,27 +1,21 @@
 #Run STICS in it's current state or with updated variables for manual calibration
 #(not using STICS parameter optimization algorithm)
-if (!require("devtools")){
-  install.packages("devtools")
-}
-if (!require("SticsRPacks")){
-  devtools::install_github("SticsRPacks/SticsRPacks@*release")
-  devtools::install_github("SticsRPacks/CroPlotR@*release")
-}
-if (!require("Metrics")){
-  install.packages("Metrics")
-}
-if (!require("ggpubr")){
-  install.packages("ggpubr")
-  install.packages("jpeg")
-}
-if (!require("readxl")){
-  install.packages("readxl")
-}
 
 packages <- c("devtools","SticsOnR", "CroPlotR","SticsRFiles","Metrics",
               "ggplot2","ggpubr","jpeg","CroptimizR","tidyr","readxl",
-              "gridExtra")
-lapply(packages, library, character.only=TRUE)
+              "gridExtra", "ggrepel", "paletteer")
+
+invisible(lapply(packages, function(p) {
+  if (!(p %in% installed.packages())) {
+    if (p == "SticsRPacks") {
+      devtools::install_github("SticsRPacks/SticsRPacks@*release")
+      devtools::install_github("SticsRPacks/CroPlotR@*release")
+    } else {
+      install.packages(p, character.only = T)
+    }
+  }
+  library(p, character.only = TRUE)
+}))
 
 
 init_ <- function(stics_path. = stics_path,
@@ -135,7 +129,7 @@ save_results <- function(workspace,
   for (u in usms){
     message("saving ",u)
     dir.create(file.path(results_dir, u)) #create new directory for individiual usm
-    file.copy(from = files[grep(u, files)], 
+    file.copy(from = files[grep(sprintf("%s.sti",u), files)], 
               to = file.path(results_dir, u)) #copy usm files to new directory
   }
   

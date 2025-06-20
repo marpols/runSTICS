@@ -1,6 +1,3 @@
-library(ggrepel)
-library(ggpubr)
-library(paletteer)
 
 get_stats_summary <- function(workspace. = workspace, 
                               version = "", 
@@ -45,6 +42,32 @@ get_stats_summary <- function(workspace. = workspace,
   
   return(stats)
   
+}
+
+get_single_stats <- function(simulations, obs_list, output_dir) {
+  #calculate statistics for individual usms
+  stats <- summary(simulations, obs = obs_list, all_situations = F)
+  stats$RMSEs_sd <- stats$RMSEs / stats$sd_obs
+  stats$RMSEu_sd <- stats$RMSEu / stats$sd_obs
+  
+  for (n in names(simulations)) {
+    write.csv(stats[stats$situation == n, c(
+      "variable",
+      "n_obs",
+      "sd_obs",
+      "sd_sim",
+      "RMSE",
+      "nRMSE",
+      "rRMSE",
+      "MAE",
+      "Bias",
+      "EF",
+      "RMSEs",
+      "RMSEu",
+      "RMSEs_sd",
+      "RMSEu_sd"
+    )], file.path(output_dir,n,sprintf("%s_metrics.csv", n)))
+  }
 }
 
 plotRMSE <- function(stats, output_dir, version, save = T,
@@ -129,7 +152,6 @@ plot_simvobs <- function(baseline,
                         height = 15,
                         output_dir = results_dir){
   #Plot comparisons of simulations and observations using CroPlotR
-  
 
   #current run or before optimization
   pbf <- plot(
