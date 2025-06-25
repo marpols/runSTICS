@@ -3,7 +3,7 @@
 
 packages <- c("devtools","SticsOnR", "CroPlotR","SticsRFiles","Metrics",
               "ggplot2","ggpubr","jpeg","CroptimizR","tidyr","readxl",
-              "gridExtra", "ggrepel", "paletteer")
+              "gridExtra", "ggrepel", "paletteer", "xml2")
 
 invisible(lapply(packages, function(p) {
   if (!(p %in% installed.packages())) {
@@ -26,17 +26,17 @@ init_ <- function(stics_path. = stics_path,
     xml_dir. <- xml_dir
   }
   workspace <<- file.path(stics_path., subdir.) #main javastics workspace
-  xml_path <<- file.path(stics_path., subdir., xml_dir.) 
+  xml_file_path <<- file.path(stics_path., subdir., xml_dir.) 
   usms <<- SticsRFiles::get_usms_list(file = file.path(stics_path.,
                                                        subdir.,
                                                        xml_dir.,
                                                        "usms.xml"))#all usms from javastics workspace
-  set_obs(xml_path,usms)
+  set_obs(xml_file_path,usms)
 } 
 
 calib_init <- function(stics_path. = stics_path,
                        subdir. = subdir,
-                       xml_path = ""){
+                       xml_file_path = ""){
   #convert xml files to txt files for use with stics_wrapper
   #set javastics and workspace path in for stics_wrapper_options
   #stics_path. - (chr) path to directory containing javastics.exe
@@ -52,7 +52,7 @@ calib_init <- function(stics_path. = stics_path,
   
   gen_usms_xml2txt(
     javastics = stics_path.,
-    workspace = file.path(stics_path.,subdir.,xml_path),
+    workspace = file.path(stics_path.,subdir.,xml_file_path),
     out_dir = stics_inputs_path,
     verbose = TRUE
   )

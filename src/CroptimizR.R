@@ -14,13 +14,14 @@ runCroptimizR <- function(model_options = sim_options,
                           tol. = tolerance,
                           ver = version,
                           out_dir = results_dir,
-                          usms = usm_cal){
+                          usms = usm_cal,
+                          cal_file){
   
 
   # Run the model on all situations found in stics_inputs_path before optimization
   message("Calibrating model for:\n", 
           paste0(capture.output(var_name.), collapse = "\n"))
-  values <- get_param_xml(plt, param = names(lowerbnds.)
+  values <- get_param_xml(cal_file, param = names(lowerbnds.)
                          )
   message("\nRunning model before optimization - ", Sys.time(),
           "\noriginal value(s):\n",

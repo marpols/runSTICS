@@ -1,4 +1,9 @@
-#R code to run STICS and for calibration and evaluation of model
+################################################################################
+# code for running STICS in work space directory
+# and for calibration and evaluation of model
+# Author: Mariaelisa Polsinelli for completion of PhD Thesis
+# McGil University, AAFC
+################################################################################
 
 #set path to folder containing javastics.exe and path to javastics working directory
 stics_path <- "C:\\Users\\marpo\\Documents\\Research\\STICS\\JavaSTICS-1.5.3-STICS-10.3.0"
@@ -10,15 +15,13 @@ subdir <- "irrigation_assessment"
 # subdir <- "MattRamsayData"
 # xml_dir <- "XmlFiles" #directory containing xml files (if different from subdir)
 
-
-source("src/runSTICS.R")
-source("src/CroptimizR.R")
-source("src/cal-eval_plots.R")
-source("src/files.R")
+sources <- c("src/runSTICS.R", "src/CroptimizR.R", 
+             "src/cal-eval_plots.R","src/files.R")
+invisible(lapply(sources, source))
 
 init_()
-init_files(xml_path, "xml")
-# init_files(xml_path, "txt") #"xml" - javastics workspace, "txt" - txt files folder for calibration
+init_files(xml_file_path, "txt")
+# init_files(xml_file_path, "txt") #"xml" - javastics workspace, "txt" - txt files folder for calibration
 
 #Select output variables
 #outvars <- c("pdsfruitfrais","mafrais","mafruit","zrac","iflos","iamfs",
@@ -43,7 +46,7 @@ gen_varmod(workspace,outvars,append=F)
 
 
 #Set Version name and results directory-----------------------------------------
-version <- "irrigation_test"
+version <- "irrigation_q0.zesx.cfes"
 
 #path to where the results will be stored (graph and Rdata)
 #results_dir <- file.path("\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\MtnGem-Calibration-2024",
@@ -53,10 +56,12 @@ results_dir <- file.path("C:\\Users\\marpo\\Documents\\Research\\STICS\\JavaSTIC
 dir.create(results_dir, showWarnings = T)
 message("output directory set as:\n", results_dir)
 
-#Run STICS----------------------------------------------------------------------
-#directly in javastics workspace directory
+################################################################################
+#  Run STICS
+#  directly in javastics workspace directory
+################################################################################
 
-set_obs(xml_path)
+set_obs(xml_file_path)
 
 results <- runSTICS(version = version)
 
@@ -68,20 +73,38 @@ ob_names <- obns[!(obns == "NA")]
 usm_obs <- setNames(lapply(ob_names, function(o){
   o <- sub(".obs","",o)
   obs[[{{o}}]]
-  }), sub(".obs","",ob_names)
+  }), usms
 )
 
-#get_stats_summary() -> metrics and RMSE plot
+get_single_stats(sims, usm_obs, results_dir)
 
 plot_simvobs(sims, obs.= usm_obs, ver = version) #plot sim vs. obs for each individual usm
 
 
 #update parameters--------------------------------------------------------------
-get_param_xml(plt, param = "stlevamf") #get current parameter value
+
+get_param_xml(plt, param = "stlevamf") #view current parameter value
 
 set_param(plt, "txt", params = list("splaimin", "splaimax"), values = list(0.5,0.5))
 
-#STICS calibration--------------------------------------------------------------
+
+#Create new usms----------------------------------------------------------------
+#for each combination of weather stations, years, soil profiles
+#names should match sta.xml files, existing soil profile names
+
+stations <- c("Summerside", "New Glasgow", "Harrington CDA CS", "East Point (AUT)")
+years <- 2004:2024
+soil_profiles <- c("CTW", "ARY", "CLO")
+usm_names <- c("RG-19") #usms from which other attributes will be copied (e.g plant, ini files)
+
+add_usms(stations, years, soil_profiles, usm_names)
+
+
+
+
+################################################################################
+#    STICS calibration
+################################################################################
 
 #if completing calibration/evaluation
 #specify list of usms used for calibration and list of usms used for evaluation
@@ -93,6 +116,7 @@ usm_eval <- usm_list[,2] #evaluation
   
 #single situation/usm or vector of usms names to consider for calibration
 sit_name <- usm_cal
+sit_name <- "RG19-hills_adj"
 
 #obs var names to consider in calibration. Single instance or vector
 # var_name <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
@@ -114,6 +138,7 @@ var_name <- c("QNgrain") #TuN
 var_name <- c("msrac_n") #Root Biomass
 var_name <- c("msrac_n", "lai_n")
 var_name <- c("Qem_N2O")
+var_name <- c("q0", "zesx", "cfes")
 
 #select lower and upper bound of parameters to consider in calibration
 
@@ -274,11 +299,19 @@ upperbnds <- c(profdenit = 60,
 lowerbnds <- c(afruitpot = 0.08)
 upperbnds <- c(afruitpot = 1.0)
 
+#soil
+lowerbnds <- c(q0 = 1,
+               zesx = 20,
+               cfes = 1)
+upperbnds <- c(q0 = 10,
+               zesx = 80,
+               cfes = 10)
+
 #step to increase each variable by (if using a grid search approach)
 by <- c(0.01)
 
-  #USING CROPTIMIZR-----------------------
-calib_init(xml_path = xml_dir) #initialize paths, options needed for calibration, update files
+#USING CROPTIMIZR---------------------------------------------------------------
+calib_init(xml_file_path = xml_dir) #initialize paths, options needed for calibration, update files
 
 random_seed <<- 1234 #set random seed
 
@@ -289,7 +322,7 @@ tolerance <- 1e-03  # Tolerance criterion between two iterations
                     # parameter values between the 2 previous iterations)
 
 #set observations
-set_obs(xml_path, usms = sit_name,variables = var_name)
+set_obs(xml_file_path, usms = sit_name,variables = var_name)
 #change model outputs (if needed)
 update_ops(stics_inputs_path,outvars)
 
@@ -303,7 +336,7 @@ set_param(plt, "txt",
           )
 
 
-  #MANUALLY (Grid Search)-----------------------------
+#Using Grid Search--------------------------------------------------------------
 calib_init()
 
 #For calibration
@@ -315,8 +348,8 @@ param_values <- param_grid(by=by)
 param_values <- c(INNimin = -0.054)
 
 #set observations
-# set_obs(xml_path, usms = sit_name) #all output variables
-set_obs(xml_path, usms = sit_name,variables = var_name) #specific variables
+# set_obs(xml_file_path, usms = sit_name) #all output variables
+set_obs(xml_file_path, usms = sit_name,variables = var_name) #specific variables
 
 #run grid search
 results <- calibrate_STICS(usm_cal,param_values)

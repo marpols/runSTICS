@@ -63,7 +63,7 @@ update_txt <- function(){
   #regenerate text files to update after changes have been made to an xml file
   gen_usms_xml2txt(
     javastics = stics_path,
-    workspace = xml_path,
+    workspace = xml_file_path,
     out_dir = stics_inputs_path,
     verbose = TRUE
   )
@@ -101,6 +101,56 @@ set_param <- function(file,
   }
 }
 
-update_usm <- function(new_usms = NULL, stations, years, sols){
+add_usms <- function(stns, yrs, sols, base_names){
+  #creates new usm combinations based on an existing usm
+  #updates weather station, soil profile, climate years
   
+  file <- read_xml(usm_file)
+  usm_nodes <- xml_find_all(file, ".//usm")
+  last_node <- tail(usm_nodes, 1)[[1]]
+  usm_parent <- xml_parent(last_node)
+  
+  combos <- expand.grid(
+    name = base_names,
+    station = stns,
+    soil = sols,
+    year = yrs,
+    stringsAsFactors = FALSE
+  )  |> mutate(across(everything(), ~ gsub(" ", "_", as.character(.))))
+  
+  combos$stn_initial <- sapply(combos$station, function(x) {
+    matches <- unlist(regmatches(x, gregexpr("(?<=^|_)[A-Z]", x, perl = TRUE)))
+    paste(matches, collapse = "")
+  })
+  
+for(row in 1:nrow(combos)){
+  base_node <- xml_find_all(file,
+                            sprintf(".//usm[@nom = '%s']",
+                                    combos[row,1]))
+  
+  new_node <- read_xml(as.character(base_node))
+  
+  soil_node <- xml_find_first(new_node, ".//nomsol")
+  xml_text(soil_node) <- combos[row,3]
+  
+  sta_node <- xml_find_first(new_node, ".//fstation")
+  xml_text(sta_node) <- sprintf("%s_sta.xml", combos[row,2])
+  
+  clim1 <- xml_find_first(new_node, ".//fclim1")
+  xml_text(clim1) <- sprintf("%s.%s", toupper(combos[row,2]), combos[row,4])
+  
+  clim2 <- xml_find_first(new_node, ".//fclim2")
+  xml_text(clim2) <- sprintf("%s.%s", toupper(combos[row,2]), combos[row,4])
+  
+  #set new usm name as: "base-name_YYYY_station-initial_soil-profile"
+  xml_set_attr(new_node, "nom", sprintf("%s_%s_%s_%s",
+                                        combos[row,1],
+                                        combos[row,4],
+                                        combos[row,5],
+                                        combos[row,3]))
+  
+  
+  xml_add_child(usm_parent, new_node, .where = "after")
+}
+  write_xml(file, usm_file)
 }
