@@ -192,17 +192,25 @@ save_results3 <- function(sims,
   if (!is.null(usms)){
     sims <- sims[names(sims) %in% usms]
   }
+  dirs <- list.dirs(stics_inputs_path)
+  
   while (n <= length(sims)){
     message(names(sims[n]))
-    dir.create(file.path(out_dir,
+    new_dir <- file.path(out_dir,
                          names(sims[n]))
-               )
-    write.table(sims[[n]],
-                file = file.path(out_dir,
-                                 names(sims[n]),
-                                 sprintf("mod_s%s.sti",names(sims[n]))),
-                sep = "\t"
-                )
+    dir.create(new_dir)
+    
+    cur_sit_dir <- dirs[grepl(sprintf("%s$", names(sims[n])), dirs)]
+    dir_files <- list.files(cur_sit_dir, full.names = T)
+    modfiles <- grepl("mod_b|mod_s|modhistory", dir_files)
+    file.copy(dir_files[modfiles],new_dir)
+    
+    # write.table(sims[[n]],
+    #             file = file.path(out_dir,
+    #                              names(sims[n]),
+    #                              sprintf("mod_s%s.sti",names(sims[n]))),
+    #             sep = "\t"
+    #             )
     n <- n + 1
   }
   message("✅ all results saved" )

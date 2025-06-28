@@ -39,14 +39,14 @@ init_files(xml_file_path, "txt")
 #              "inn", "QCrac", "QNrac", 
 #              "ulai_n", "turfac", "swfac", "senfac","innlai","splai", 
 #              "idebdess","fpft", "allocfruit", "sourcepuits")
-outvars <- c("HR(1)", "pdsfruitfrais")
+outvars <- c("HR_1", "pdsfruitfrais","cet","et")
 
 #apply new output variables
 gen_varmod(workspace,outvars,append=F)
 
 
 #Set Version name and results directory-----------------------------------------
-version <- "irrigation_q0.zesx.cfes"
+version <- "irrigation_q0.zesx.cfes_bd1.2obs"
 
 #path to where the results will be stored (graph and Rdata)
 #results_dir <- file.path("\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\MtnGem-Calibration-2024",
@@ -111,14 +111,15 @@ add_usms(stations, years, soil_profiles, usm_names)
 usm_list <- "mtngem_cal-eval.xlsx"
 usm_list <- as.data.frame(read_excel(file.path(workspace,usm_list),
                                      col_names=FALSE))
-usm_cal <- usm_list[,1] #calibration
+#usm_cal <- usm_list[,1] #calibration
+# usm_cal <- usms
+usm_cal <- usms[4:6]
 usm_eval <- usm_list[,2] #evaluation
   
 #single situation/usm or vector of usms names to consider for calibration
 sit_name <- usm_cal
-sit_name <- "RG19-hills_adj"
 
-#obs var names to consider in calibration. Single instance or vector
+#obs var names to consider in calibration. Single instance or vector------------
 # var_name <- c("masec(n)","mafrais","mafruit","pdsfruitfrais","msrac(n)",
 #               "QNplante","QNgrain","QNrac","CNplante","CNgrain","QCrac","lai(n)")
 var_name <- c("QNplante", "lai_n", "mafruit")
@@ -138,9 +139,9 @@ var_name <- c("QNgrain") #TuN
 var_name <- c("msrac_n") #Root Biomass
 var_name <- c("msrac_n", "lai_n")
 var_name <- c("Qem_N2O")
-var_name <- c("q0", "zesx", "cfes")
+var_name <- c("HR_1")
 
-#select lower and upper bound of parameters to consider in calibration
+#select lower and upper bound of parameters to consider in calibration----------
 
 #emergence and starting
 lowerbnds <- c(belong = 0.005)
@@ -299,7 +300,7 @@ upperbnds <- c(profdenit = 60,
 lowerbnds <- c(afruitpot = 0.08)
 upperbnds <- c(afruitpot = 1.0)
 
-#soil
+#soil moisture
 lowerbnds <- c(q0 = 1,
                zesx = 20,
                cfes = 1)
@@ -311,7 +312,7 @@ upperbnds <- c(q0 = 10,
 by <- c(0.01)
 
 #USING CROPTIMIZR---------------------------------------------------------------
-calib_init(xml_file_path = xml_dir) #initialize paths, options needed for calibration, update files
+calib_init() #initialize paths, options needed for calibration, update files
 
 random_seed <<- 1234 #set random seed
 
@@ -322,12 +323,12 @@ tolerance <- 1e-03  # Tolerance criterion between two iterations
                     # parameter values between the 2 previous iterations)
 
 #set observations
-set_obs(xml_file_path, usms = sit_name,variables = var_name)
+set_obs(xml_file_path, usms = sit_name, variables = var_name)
 #change model outputs (if needed)
 update_ops(stics_inputs_path,outvars)
 
 #run the optimization
-results <- runCroptimizR()
+results <- runCroptimizR(usms = sit_name, cal_file = sols)
 
 #update parameters
 set_param(plt, "txt",
