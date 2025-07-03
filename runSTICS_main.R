@@ -20,7 +20,7 @@ sources <- c("src/runSTICS.R", "src/CroptimizR.R",
 invisible(lapply(sources, source))
 
 init_()
-init_files(xml_file_path, "txt")
+init_files(xml_file_path, "xml")
 # init_files(xml_file_path, "txt") #"xml" - javastics workspace, "txt" - txt files folder for calibration
 
 #Select output variables
@@ -46,13 +46,16 @@ gen_varmod(workspace,outvars,append=F)
 
 
 #Set Version name and results directory-----------------------------------------
-version <- "irrigation_q0.zesx.cfes_bd1.2obs"
+version <- "Harrington_ARY_noWS"
 
 #path to where the results will be stored (graph and Rdata)
 #results_dir <- file.path("\\\\chaemci01-cifs.efs.agr.gc.ca\\common\\COMMON\\Workgroups\\MesbahM\\Students\\Maria\\STICS\\MtnGem-Calibration-2024",
                          # version)
-results_dir <- file.path("C:\\Users\\marpo\\Documents\\Research\\STICS\\JavaSTICS-1.5.3-STICS-10.3.0\\irrigation_assessment\\RESULTS",
+results_dir <- file.path(file.path(workspace,"RESULTS"),
                          version)
+if(!(dir.exists(file.path(workspace,"RESULTS")))){
+  dir.create(file.path(stics_path, workspace,"RESULTS"))
+}
 dir.create(results_dir, showWarnings = T)
 message("output directory set as:\n", results_dir)
 
@@ -63,7 +66,7 @@ message("output directory set as:\n", results_dir)
 
 set_obs(xml_file_path)
 
-results <- runSTICS(version = version)
+results <- runSTICS(version = version, usms = usms[2:22])
 
 sims <<- SticsRFiles::get_sim(javastics = stics_path,
                               workspace = workspace)
@@ -82,20 +85,34 @@ plot_simvobs(sims, obs.= usm_obs, ver = version) #plot sim vs. obs for each indi
 
 
 #update parameters--------------------------------------------------------------
+file <- param_gen
+  
+params <- list("codeh2oact")
+  
+type <- "xml" #"xml" or "txt" (calibration)
 
-get_param_xml(plt, param = "stlevamf") #view current parameter value
+values <- list(2)
 
-set_param(plt, "txt", params = list("splaimin", "splaimax"), values = list(0.5,0.5))
+get_param_info()
+
+get_param_xml(file, param = params) #view current parameter value
+
+set_param(file, type, params = params, values = values)
 
 
 #Create new usms----------------------------------------------------------------
 #for each combination of weather stations, years, soil profiles
 #names should match sta.xml files, existing soil profile names
 
-stations <- c("Summerside", "New Glasgow", "Harrington CDA CS", "East Point (AUT)")
+# stations <- c("Summerside", "New Glasgow", "Harrington CDA CS", "East Point (AUT)")
+# years <- 2004:2024
+# soil_profiles <- c("CTW", "ARY", "CLO")
+# usm_names <- c("RG-19") #usms from which other attributes will be copied (e.g plant, ini files)
+
+stations <- c("Harrington CDA CS")
 years <- 2004:2024
-soil_profiles <- c("CTW", "ARY", "CLO")
-usm_names <- c("RG-19") #usms from which other attributes will be copied (e.g plant, ini files)
+soil_profiles <- c("ARY_hills")
+usm_names <- c("PEI")
 
 add_usms(stations, years, soil_profiles, usm_names)
 

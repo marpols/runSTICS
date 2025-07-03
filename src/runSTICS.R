@@ -75,7 +75,17 @@ set_obs <- function(workspace. = workspace,
     #use all usms
     usms <- SticsRFiles::get_usms_list(file = file.path(workspace., "usms.xml"))
   }
-  obs <<- get_obs(workspace., usm = usms)
+  
+  tryCatch(
+    {
+      obs <<- get_obs(workspace., usm = usms)
+      },
+    warning = function(cond){
+      message("no observation files set for usms")
+      obs <<- NULL
+    }
+    )
+
   if (!is.null(variables)){
     #filter obs_list to include only listed variables
     obs <<- filter_obs(obs, var = variables, include = TRUE)
@@ -130,15 +140,19 @@ save_results <- function(workspace,
     message("saving ",u)
     dir.create(file.path(results_dir, u)) #create new directory for individiual usm
     file.copy(from = files[grep(sprintf("%s.sti",u), files)], 
-              to = file.path(results_dir, u)) #copy usm files to new directory
+              to = file.path(results_dir, u),
+              overwrite = TRUE) #copy usm files to new directory
   }
   
   file.copy(from = files[grep("modhistory.sti", files)],
-            to = results_dir)
+            to = results_dir,
+            overwrite = TRUE)
   file.copy(from = files[grep("mod_profil_Chum.sti", files)],
-            to = results_dir)
+            to = results_dir,
+            overwrite = TRUE)
   file.copy(from = files[grep("mod_rapport.sti", files)],
-            to = results_dir)
+            to = results_dir,
+            overwrite = TRUE)
   
   message("✅ all results saved" )
 }
@@ -358,7 +372,10 @@ runSTICS <- function(path = stics_path,
   results <- run_javastics(stics_path, workspace., usms)
   
   save_results(workspace = workspace., usms = usms)
-  get_stats_summary(usms = usms, version = version)
+  
+  if(!is.null(obs)){
+    get_stats_summary(usms = usms, version = version)
+  }
   
   return(results)
 }

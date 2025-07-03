@@ -8,8 +8,9 @@ init_files <- function(workspace,
   sta <<- file.path(workspace, sprintf("%s_sta.xml", station))
   sols <<- file.path(workspace, "sols.xml")
   plt <<- file.path(
-    if(file_type =="xml"){stics_path}else{workspace},
-    "plant",plant_file)
+    if(file_type =="xml"){stics_path} else{workspace},
+    "plant", plant_file)
+  param_gen <<- file.path(stics_path,"config","param_gen.xml")
 }
 
 new_file <- function(path,
@@ -154,3 +155,5 @@ for(row in 1:nrow(combos)){
 }
   write_xml(file, usm_file)
 }
+
+
